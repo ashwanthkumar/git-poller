@@ -17,4 +17,15 @@ public class Revision {
         this.user = user;
         this.modifiedFiles = modifiedFiles;
     }
+
+    @Override
+    public String toString() {
+        return "Revision{" +
+                "revision='" + revision + '\'' +
+                ", timestamp=" + timestamp +
+                ", comment='" + comment + '\'' +
+                ", user='" + user + '\'' +
+                ", modifiedFiles=" + modifiedFiles +
+                '}';
+    }
 }

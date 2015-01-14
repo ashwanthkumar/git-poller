@@ -8,4 +8,12 @@ public class ModifiedFile {
         this.fileName = fileName;
         this.action = action;
     }
+
+    @Override
+    public String toString() {
+        return "ModifiedFile{" +
+                "fileName='" + fileName + '\'' +
+                ", action='" + action + '\'' +
+                '}';
+    }
 }
