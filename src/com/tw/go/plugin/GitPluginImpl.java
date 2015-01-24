@@ -8,9 +8,11 @@ import com.thoughtworks.go.plugin.api.annotation.Extension;
 import com.thoughtworks.go.plugin.api.logging.Logger;
 import com.thoughtworks.go.plugin.api.request.GoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.validator.routines.UrlValidator;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -94,9 +96,22 @@ public class GitPluginImpl implements GoPlugin {
         validate(response, new FieldValidator() {
             @Override
             public void validate(Map<String, Object> fieldValidation) {
-                if (!new UrlValidator().isValid(configuration.get("url"))) {
+                String url = configuration.get("url");
+                if (url == null || url.trim().isEmpty()) {
                     fieldValidation.put("key", "url");
-                    fieldValidation.put("message", "Invalid URL format");
+                    fieldValidation.put("message", "URL is a required field");
+                } else {
+                    if (url.startsWith("/")) {
+                        if (!new File(url).exists()) {
+                            fieldValidation.put("key", "url");
+                            fieldValidation.put("message", "Invalid URL. Directory does not exist");
+                        }
+                    } else {
+                        if (!new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(url)) {
+                            fieldValidation.put("key", "url");
+                            fieldValidation.put("message", "Invalid URL format");
+                        }
+                    }
                 }
             }
         });
