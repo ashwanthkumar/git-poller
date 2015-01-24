@@ -8,6 +8,7 @@ import com.thoughtworks.go.plugin.api.annotation.Extension;
 import com.thoughtworks.go.plugin.api.logging.Logger;
 import com.thoughtworks.go.plugin.api.request.GoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.validator.routines.UrlValidator;
 
 import java.io.IOException;
@@ -27,6 +28,7 @@ public class GitPluginImpl implements GoPlugin {
     private static final List<String> goSupportedVersions = asList("1.0");
 
     public static final String REQUEST_SCM_CONFIGURATION = "scm-configuration";
+    public static final String REQUEST_SCM_VIEW = "scm-view";
     public static final String REQUEST_VALIDATE_SCM_CONFIGURATION = "validate-scm-configuration";
     public static final String REQUEST_CHECK_SCM_CONNECTION = "check-scm-connection";
     public static final String REQUEST_LATEST_REVISION = "latest-revision";
@@ -46,6 +48,13 @@ public class GitPluginImpl implements GoPlugin {
     public GoPluginApiResponse handle(GoPluginApiRequest goPluginApiRequest) {
         if (goPluginApiRequest.requestName().equals(REQUEST_SCM_CONFIGURATION)) {
             return handleSCMConfiguration();
+        } else if (goPluginApiRequest.requestName().equals(REQUEST_SCM_VIEW)) {
+            try {
+                return handleSCMView();
+            } catch (IOException e) {
+                String message = "Failed to find template: " + e.getMessage();
+                return renderJSON(500, message);
+            }
         } else if (goPluginApiRequest.requestName().equals(REQUEST_VALIDATE_SCM_CONFIGURATION)) {
             return handleSCMValidation(goPluginApiRequest);
         } else if (goPluginApiRequest.requestName().equals(REQUEST_CHECK_SCM_CONNECTION)) {
@@ -68,6 +77,13 @@ public class GitPluginImpl implements GoPlugin {
     private GoPluginApiResponse handleSCMConfiguration() {
         Map<String, Object> response = new HashMap<String, Object>();
         response.put("url", createField("URL", null, true, true, false, "0"));
+        return renderJSON(SUCCESS_RESPONSE_CODE, response);
+    }
+
+    private GoPluginApiResponse handleSCMView() throws IOException {
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("displayValue", "JGit");
+        response.put("template", IOUtils.toString(getClass().getResourceAsStream("/views/scm.template.html"), "UTF-8"));
         return renderJSON(SUCCESS_RESPONSE_CODE, response);
     }
 
