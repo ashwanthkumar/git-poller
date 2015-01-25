@@ -1,12 +1,20 @@
 package com.tw.go.plugin;
 
 public class ModifiedFile {
-    String fileName;
-    String action;
+    private String fileName;
+    private String action;
 
     public ModifiedFile(String fileName, String action) {
         this.fileName = fileName;
         this.action = action;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public String getAction() {
+        return action;
     }
 
     @Override

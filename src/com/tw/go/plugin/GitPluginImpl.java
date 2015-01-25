@@ -152,9 +152,10 @@ public class GitPluginImpl implements GoPlugin {
         LOGGER.warn("flyweight: " + flyweightFolder);
 
         try {
-            JGitHelper.cloneOrFetch(url, flyweightFolder);
+            JGitHelper jGit = new JGitHelper();
+            jGit.cloneOrFetch(url, flyweightFolder);
 
-            Revision revision = JGitHelper.getLatestRevision(flyweightFolder);
+            Revision revision = jGit.getLatestRevision(flyweightFolder);
 
             if (revision == null) {
                 return renderJSON(SUCCESS_RESPONSE_CODE, null);
@@ -178,9 +179,10 @@ public class GitPluginImpl implements GoPlugin {
         LOGGER.warn("flyweight: " + flyweightFolder + ". previous commit: " + previousRevision);
 
         try {
-            JGitHelper.cloneOrFetch(url, flyweightFolder);
+            JGitHelper jGit = new JGitHelper();
+            jGit.cloneOrFetch(url, flyweightFolder);
 
-            List<Revision> newerRevisions = JGitHelper.getNewerRevisions(flyweightFolder, previousRevision);
+            List<Revision> newerRevisions = jGit.getNewerRevisions(flyweightFolder, previousRevision);
 
             if (newerRevisions == null || newerRevisions.isEmpty()) {
                 return renderJSON(SUCCESS_RESPONSE_CODE, null);
@@ -212,9 +214,10 @@ public class GitPluginImpl implements GoPlugin {
         LOGGER.warn("destination: " + destinationFolder + ". commit: " + revision);
 
         try {
-            JGitHelper.cloneOrFetch(url, destinationFolder);
+            JGitHelper jGit = new JGitHelper();
+            jGit.cloneOrFetch(url, destinationFolder);
 
-            JGitHelper.checkoutToRevision(destinationFolder, revision);
+            jGit.checkoutToRevision(destinationFolder, revision);
 
             Map<String, Object> response = new HashMap<String, Object>();
             ArrayList<String> messages = new ArrayList<String>();
@@ -239,14 +242,14 @@ public class GitPluginImpl implements GoPlugin {
 
     private Map<String, Object> getRevisionMap(Revision revision) {
         Map<String, Object> response = new HashMap<String, Object>();
-        response.put("revision", revision.revision);
-        response.put("timestamp", new SimpleDateFormat(DATE_PATTERN).format(revision.timestamp));
-        response.put("revisionComment", revision.comment);
+        response.put("revision", revision.getRevision());
+        response.put("timestamp", new SimpleDateFormat(DATE_PATTERN).format(revision.getTimestamp()));
+        response.put("revisionComment", revision.getComment());
         List<Map> modifiedFilesMapList = new ArrayList<Map>();
-        for (ModifiedFile modifiedFile : revision.modifiedFiles) {
+        for (ModifiedFile modifiedFile : revision.getModifiedFiles()) {
             Map<String, String> modifiedFileMap = new HashMap<String, String>();
-            modifiedFileMap.put("fileName", modifiedFile.fileName);
-            modifiedFileMap.put("action", modifiedFile.action);
+            modifiedFileMap.put("fileName", modifiedFile.getFileName());
+            modifiedFileMap.put("action", modifiedFile.getAction());
             modifiedFilesMapList.add(modifiedFileMap);
         }
         response.put("modifiedFiles", modifiedFilesMapList);

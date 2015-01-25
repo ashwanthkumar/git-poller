@@ -1,8 +1,6 @@
 package com.tw.go.plugin;
 
-import org.eclipse.jgit.api.CloneCommand;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.PullCommand;
+import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.diff.RawTextComparator;
@@ -20,15 +18,19 @@ import java.util.Iterator;
 import java.util.List;
 
 public class JGitHelper {
-    public static void cloneOrFetch(String url, String folder) throws Exception {
+    public void cloneOrFetch(String url, String folder) throws Exception {
         if (!new File(folder).exists()) {
             cloneRepository(url, folder);
         } else {
+            cleanRepository(folder);
             fetchRepository(url, folder);
+            gcRepository(folder);
+            resetRepository(folder, "origin/master");
+            cleanRepository(folder);
         }
     }
 
-    public static void cloneRepository(String url, String folder) throws Exception {
+    private void cloneRepository(String url, String folder) throws Exception {
         // delete if exists
         new File(folder).mkdirs();
 
@@ -39,20 +41,34 @@ public class JGitHelper {
         cloneCommand.call();
     }
 
-    public static void fetchRepository(String url, String folder) throws Exception {
+    private void cleanRepository(String folder) throws Exception {
+        Repository repository = null;
+        try {
+            repository = new FileRepositoryBuilder().setGitDir(getGitDir(folder)).readEnvironment().findGitDir().build();
+            Git git = new Git(repository);
+            CleanCommand clean = git.clean().setCleanDirectories(true);
+            clean.call();
+        } finally {
+            if (repository != null) {
+                repository.close();
+            }
+        }
+    }
+
+    private void fetchRepository(String url, String folder) throws Exception {
         // check remote url - if ok
 
-        JGitHelper.checkoutToRevision(folder, "master");
+        checkoutToRevision(folder, "master");
 
         Repository repository = null;
         try {
             repository = new FileRepositoryBuilder().setGitDir(getGitDir(folder)).readEnvironment().findGitDir().build();
             Git git = new Git(repository);
-            PullCommand pullCommand = git.pull();
+            FetchCommand fetch = git.fetch();
             if (url.startsWith("http") || url.startsWith("https")) {
                 // if url is http/https - set credentials
             }
-            pullCommand.call();
+            fetch.call();
         } finally {
             if (repository != null) {
                 repository.close();
@@ -61,7 +77,35 @@ public class JGitHelper {
         // else delete folder & clone
     }
 
-    public static Revision getLatestRevision(String folder) throws Exception {
+    private void gcRepository(String folder) throws Exception {
+        Repository repository = null;
+        try {
+            repository = new FileRepositoryBuilder().setGitDir(getGitDir(folder)).readEnvironment().findGitDir().build();
+            Git git = new Git(repository);
+            GarbageCollectCommand gc = git.gc();
+            gc.call();
+        } finally {
+            if (repository != null) {
+                repository.close();
+            }
+        }
+    }
+
+    private void resetRepository(String folder, String revision) throws Exception {
+        Repository repository = null;
+        try {
+            repository = new FileRepositoryBuilder().setGitDir(getGitDir(folder)).readEnvironment().findGitDir().build();
+            Git git = new Git(repository);
+            ResetCommand reset = git.reset().setMode(ResetCommand.ResetType.HARD).setRef(revision);
+            reset.call();
+        } finally {
+            if (repository != null) {
+                repository.close();
+            }
+        }
+    }
+
+    public Revision getLatestRevision(String folder) throws Exception {
         Repository repository = null;
         try {
             repository = new FileRepositoryBuilder().setGitDir(getGitDir(folder)).readEnvironment().findGitDir().build();
@@ -79,7 +123,7 @@ public class JGitHelper {
         return null;
     }
 
-    public static List<Revision> getNewerRevisions(String folder, String previousRevision) throws Exception {
+    public List<Revision> getNewerRevisions(String folder, String previousRevision) throws Exception {
         Repository repository = null;
         try {
             repository = new FileRepositoryBuilder().setGitDir(getGitDir(folder)).readEnvironment().findGitDir().build();
@@ -112,23 +156,14 @@ public class JGitHelper {
         }
     }
 
-    public static void checkoutToRevision(String folder, String revision) throws Exception {
-        Repository repository = null;
-        try {
-            repository = new FileRepositoryBuilder().setGitDir(getGitDir(folder)).readEnvironment().findGitDir().build();
-            Git git = new Git(repository);
-            git.checkout().setName(revision).call();
-        } finally {
-            if (repository != null) {
-                repository.close();
-            }
-        }
+    public void checkoutToRevision(String folder, String revision) throws Exception {
+        resetRepository(folder, revision);
     }
 
-    private static Revision getRevisionObj(Repository repository, RevCommit commit) throws IOException {
+    private Revision getRevisionObj(Repository repository, RevCommit commit) throws IOException {
         String commitSHA = commit.getName();
         int commitTime = commit.getCommitTime();
-        String comment = commit.getFullMessage();
+        String comment = commit.getFullMessage().trim();
         String user = commit.getAuthorIdent().getEmailAddress();
         List<ModifiedFile> modifiedFiles = new ArrayList<ModifiedFile>();
         if (commit.getParentCount() == 0) {
@@ -154,7 +189,7 @@ public class JGitHelper {
         return new Revision(commitSHA, commitTime, comment, user, modifiedFiles);
     }
 
-    private static String getAction(String gitAction) {
+    private String getAction(String gitAction) {
         if (gitAction.equalsIgnoreCase("ADD") || gitAction.equalsIgnoreCase("RENAME")) {
             return "added";
         }
@@ -167,7 +202,7 @@ public class JGitHelper {
         return "unknown";
     }
 
-    private static File getGitDir(String folder) {
+    private File getGitDir(String folder) {
         return new File(folder, ".git");
     }
 }
