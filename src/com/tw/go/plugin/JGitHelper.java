@@ -19,7 +19,7 @@ import java.util.List;
 
 public class JGitHelper {
     public void cloneOrFetch(String url, String folder) throws Exception {
-        if (!new File(folder).exists()) {
+        if (!new File(folder).exists() || !getGitDir(folder).exists()) {
             cloneRepository(url, folder);
         } else {
             cleanRepository(folder);
